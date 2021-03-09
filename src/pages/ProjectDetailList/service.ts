@@ -20,13 +20,13 @@ export async function removeProjectFile(params: { key: number}) {
   });
 }
 
-export async function addProjectFile(params: TableListItem) {
-  return request('/service/projectFile/', {
+//上传文件
+export async function addProjectFile(params: { key: number,file:File}) {
+  const formData = new FormData();
+  formData.append('file', params.file);
+  return request('/service/projectFile/'+params.key, {
     method: 'POST',
-    data: {
-      ...params,
-      method: 'post',
-    },
+    body: formData,
   });
 }
 

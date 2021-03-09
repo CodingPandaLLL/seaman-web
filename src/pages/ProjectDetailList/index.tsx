@@ -1,12 +1,11 @@
 import { message, Form, Tabs, Button,Upload } from 'antd';
 import React, { useState, useRef, useEffect } from 'react';
-import { useIntl, FormattedMessage } from 'umi';
-import { PageContainer, FooterToolbar } from '@ant-design/pro-layout';
-import ProTable, { ProColumns, ActionType } from '@ant-design/pro-table';
-import CreateForm from './components/CreateForm';
+import { useIntl } from 'umi';
+import { PageContainer } from '@ant-design/pro-layout';
+import {  ActionType } from '@ant-design/pro-table';
 import env from '../../../config/env';
 import { TableListItem } from './data';
-import { queryProjectFileList } from './service';
+import { queryProjectFileList,addProjectFile } from './service';
 import styles from './index.less';
 import { FileImageOutlined, FileOutlined, FileExcelOutlined, FileUnknownOutlined, FileZipOutlined, FileWordOutlined, FileTextOutlined, FilePptOutlined, FilePdfOutlined, FileMarkdownOutlined ,UploadOutlined} from '@ant-design/icons';
 const { TabPane } = Tabs;
@@ -24,6 +23,7 @@ const ProjectFileList: React.FC<{}> = (props) => {
   const [record, setRecord] = useState<TableListItem>();
   const [imageRows, setImageRows] = useState<TableListItem[]>([]);
   const [fileRows, setFileRows] = useState<TableListItem[]>([]);
+  const [projectId, setProjectId] = useState<Number>();
   const intl = useIntl();
   const [projectForm] = Form.useForm();
 
@@ -39,28 +39,35 @@ const ProjectFileList: React.FC<{}> = (props) => {
 */
   const getProjectFiles = () => {
     var values = props.location.data;
-    try {
-      queryProjectFileList(values).then((result) => {
-        if (result.httpError) {
-          message.error(result.message);
-        } else if (result) {
-          let images = new Array<TableListItem>();
-          let files = new Array<TableListItem>();
-          for (var i = 0; i < result.length; i++) {
-            if ('bmp,jpg,png,tif,gif,pcx,tga,exif,fpx,svg,psd,cdr,pcd,dxf,ufo,eps,ai,raw,WMF,webp,avif'.indexOf(result[i].attachType) > -1) {
-              images.push(result[i]);
-            } else {
-              files.push(result[i]);
+    if(props.location.data && props.location.data.id){
+      setProjectId(props.location.data.id)
+      try {
+        queryProjectFileList(values).then((result) => {
+          if (result.httpError) {
+            message.error(result.message);
+          } else if (result) {
+            let images = new Array<TableListItem>();
+            let files = new Array<TableListItem>();
+            for (var i = 0; i < result.length; i++) {
+              if ('bmp,jpg,png,tif,gif,pcx,tga,exif,fpx,svg,psd,cdr,pcd,dxf,ufo,eps,ai,raw,WMF,webp,avif'.indexOf(result[i].attachType) > -1) {
+                images.push(result[i]);
+              } else {
+                files.push(result[i]);
+              }
             }
+            setImageRows(images);
+            setFileRows(files);
           }
-          setImageRows(images);
-          setFileRows(files);
-        }
-      });
-    } catch (error) {
-      message.error('修改失败请重试！');
-      return false;
+        });
+      } catch (error) {
+        message.error('修改失败请重试！');
+        return false;
+      }
+    }else{
+      message.error('未找到项目编号~');
+      props.history.push({pathname:'/projectTableList',data:{},});
     }
+
   };
 
   /**
@@ -167,10 +174,22 @@ const ProjectFileList: React.FC<{}> = (props) => {
     }
   };
   const uploadProps ={
+    name: 'file',
     showUploadList:false,
-    onChange(info) {
-      debugger;
-      message.error(`${info.file.name} file upload failed.`);
+    onChange(info:any) {
+      if(info.file.status=='done'){
+        var values = {key:props.location.data.id,file:info.file.originFileObj};
+        addProjectFile(values).then((result) => {
+          if (result.status == '1') {
+            message.success('新增成功');
+            getProjectFiles();
+            return true;
+          } else {
+            message.error('新增失败请重试！');
+            return false;
+          }
+        });
+      }
     },
   }
 
