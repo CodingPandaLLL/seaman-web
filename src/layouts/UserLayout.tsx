@@ -1,9 +1,9 @@
-import { DefaultFooter, MenuDataItem, getMenuData, getPageTitle } from '@ant-design/pro-layout';
+import {  MenuDataItem, getMenuData, getPageTitle } from '@ant-design/pro-layout';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 import { Link, SelectLang, useIntl, ConnectProps, connect, FormattedMessage } from 'umi';
 import React from 'react';
 import { ConnectState } from '@/models/connect';
-import logo from '../assets/logo.svg';
+import logo from '../assets/logo.png';
 import styles from './UserLayout.less';
 
 export interface UserLayoutProps extends Partial<ConnectProps> {
@@ -55,13 +55,12 @@ const UserLayout: React.FC<UserLayoutProps> = (props) => {
             <div className={styles.desc}>
               <FormattedMessage
                 id="pages.layouts.userLayout.title"
-                defaultMessage="seaman欢迎您~"
+                defaultMessage="seaman欢迎您"
               />
             </div>
           </div>
           {children}
         </div>
-        <DefaultFooter />
       </div>
     </HelmetProvider>
   );
