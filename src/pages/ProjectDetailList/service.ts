@@ -13,9 +13,9 @@ export async function queryProjectFileList(params?: TableListParams) {
   });
 }
 
-export async function removeProjectFile(params: { key: number}) {
+export async function removeProjectFile(params: {projectId:number, id: number}) {
   // console.log('pram========='+params.key);
-  return request('/service/projectFile/'+params.key, {
+  return request('/service/projectFile/'+params.projectId+'/'+params.id, {
     method: 'DELETE',
   });
 }

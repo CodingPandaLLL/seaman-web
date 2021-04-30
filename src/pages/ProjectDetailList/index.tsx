@@ -1,55 +1,59 @@
-import { message, Form, Tabs, Button,Upload } from 'antd';
-import React, { useState, useRef, useEffect } from 'react';
-import { useIntl } from 'umi';
-import { PageContainer } from '@ant-design/pro-layout';
-import {  ActionType } from '@ant-design/pro-table';
+import {Button, Image, message, Tabs, Upload} from 'antd';
+import React, {useEffect, useState} from 'react';
+import {PageContainer} from '@ant-design/pro-layout';
+import {
+  FileExcelOutlined,
+  FileImageOutlined,
+  FileMarkdownOutlined,
+  FileOutlined,
+  FilePdfOutlined,
+  FilePptOutlined,
+  FileTextOutlined,
+  FileUnknownOutlined,
+  FileWordOutlined,
+  FileZipOutlined,
+  UploadOutlined
+} from '@ant-design/icons';
 import env from '../../../config/env';
-import { TableListItem } from './data';
-import { queryProjectFileList,addProjectFile } from './service';
+import {TableListItem} from './data';
+import {addProjectFile, queryProjectFileList, removeProjectFile} from './service';
+import ManageFileForm from './components/ManageFileForm';
 import styles from './index.less';
-import { FileImageOutlined, FileOutlined, FileExcelOutlined, FileUnknownOutlined, FileZipOutlined, FileWordOutlined, FileTextOutlined, FilePptOutlined, FilePdfOutlined, FileMarkdownOutlined ,UploadOutlined} from '@ant-design/icons';
-const { TabPane } = Tabs;
 
-
+const {TabPane} = Tabs;
 
 
 const ProjectFileList: React.FC<{}> = (props) => {
-  const [createModalVisible, handleModalVisible] = useState<boolean>(false);
   const [updateModalVisible, handleUpdateModalVisible] = useState<boolean>(false);
-  const [deltetModalVisible, handleDeleteModalVisible] = useState<boolean>(false);
-  const actionRef = useRef<ActionType>();
-  const [row, setRow] = useState<TableListItem>();
   const [imgNum, setImgNum] = useState<number>();
-  const [record, setRecord] = useState<TableListItem>();
+  const [file, setFile] = useState<TableListItem>();
   const [imageRows, setImageRows] = useState<TableListItem[]>([]);
   const [fileRows, setFileRows] = useState<TableListItem[]>([]);
-  const [projectId, setProjectId] = useState<Number>();
-  const intl = useIntl();
-  const [projectForm] = Form.useForm();
+  const [projectId, setProjectId] = useState<number>();
 
-  //初始化请求
+  // 初始化请求
   useEffect(() => {
     getProjectFiles();
   }, [])
 
 
   /**
-* 查询数据
-* @param values TableListItem
-*/
+   * 查询数据
+   * @param values TableListItem
+   */
   const getProjectFiles = () => {
-    var values = props.location.data;
-    if(props.location.data && props.location.data.id){
+    const values = props.location.data;
+    if (props.location.data && props.location.data.id) {
       setProjectId(props.location.data.id)
       try {
         queryProjectFileList(values).then((result) => {
           if (result.httpError) {
             message.error(result.message);
           } else if (result) {
-            let images = new Array<TableListItem>();
-            let files = new Array<TableListItem>();
-            for (var i = 0; i < result.length; i++) {
-              if ('bmp,jpg,png,tif,gif,pcx,tga,exif,fpx,svg,psd,cdr,pcd,dxf,ufo,eps,ai,raw,WMF,webp,avif'.indexOf(result[i].attachType) > -1) {
+            const images = new Array<TableListItem>();
+            const files = new Array<TableListItem>();
+            for (let i = 0; i < result.length; i++) {
+              if ('bmp,jpg,png,tif,gif,pcx,tga,exif,fpx,svg,psd,cdr,pcd,dxf,ufo,eps,ai,raw,WMF,webp,avif,jpeg'.indexOf(result[i].attachType) > -1) {
                 images.push(result[i]);
               } else {
                 files.push(result[i]);
@@ -63,9 +67,9 @@ const ProjectFileList: React.FC<{}> = (props) => {
         message.error('修改失败请重试！');
         return false;
       }
-    }else{
+    } else {
       message.error('未找到项目编号~');
-      props.history.push({pathname:'/projectTableList',data:{},});
+      props.history.push({pathname: '/projectTableList', data: {},});
     }
 
   };
@@ -73,173 +77,156 @@ const ProjectFileList: React.FC<{}> = (props) => {
   /**
    * 下载文件
    */
-  const downloadFile = (record: TableListItem) => {
-    window.open(env.API_FILE_URL+record.id);
+  const downloadFile = () => {
+    window.open(env.API_FILE_URL + file?.id);
+    handleUpdateModalVisible(false);
   };
 
   /**
- * 添加节点
- * @param fields
- */
-  const handleAdd = async (fields: TableListItem) => {
-    const hide = message.loading('正在添加');
+   * 删除图片
+   */
+  const deleteImage = () => {
     try {
-      await addProject({ ...fields }).then((result) => {
-        if (result.status == 1) {
-          hide();
-          message.success('添加成功');
-          handleModalVisible(false);
-          if (actionRef.current) {
-            actionRef.current.reload();
-          }
-          return true;
-        } else {
-          hide();
-          message.error('添加失败请重试！');
-          return false;
-        }
-      });
-    } catch (error) {
-      hide();
-      message.error('添加失败请重试！');
-      return false;
-    }
-  };
-
-  /**
- *  删除节点
- * @param record
- */
-  const handleRemove = async (record: TableListItem) => {
-    const hide = message.loading('正在删除');
-    if (!record) return true;
-    try {
-      removeProject({ key: record.id }).then((result) => {
-        if (result.status == 1) {
-          handleDeleteModalVisible(false)
-          actionRef.current?.reloadAndRest?.();
-          hide();
+      removeProjectFile({
+        projectId: projectId !== undefined ? projectId : -1,
+        id: (imgNum !== undefined && imgNum !== -1) ? imgNum : file?.id
+      }).then((result) => {
+        if (result.status === 1) {
+          handleUpdateModalVisible(false);
+          getProjectFiles();
           message.success('删除成功，即将刷新');
           return true;
-        } else {
-          hide();
-          message.error('删除失败，请重试');
-          return false;
         }
+        message.error('删除失败，请重试');
+        return false;
+
       });
     } catch (error) {
-      hide();
       message.error('删除失败，请重试');
       return false;
     }
-  };
+
+  }
 
   /**
    * 返回到的项目列表
    */
   const turnBack = () => {
-    props.history.push({pathname:'/projectTableList',data:{},});
+    props.history.push({pathname: '/projectTableList', data: {},});
   };
 
+
   /**
- * 更新状态
- */
-  const handleUpdateStatus = (values: TableListItem) => {
-    console.log(values);
-    const hide = message.loading('正在更新');
-    try {
-      if (values.status == '1') {
-        values.status = '0';
-      } else {
-        values.status = '1';
-      }
-      values.createDate = null;
-      updateProject(values).then((result) => {
-        if (result.status == '1') {
-          hide();
-          message.success('更新成功');
-          handleUpdateModalVisible(false)
-          actionRef.current?.reloadAndRest?.();
-          return true;
-        } else {
-          hide();
-          message.error('更新失败请重试！');
-          return false;
-        }
-      });
-    } catch (error) {
-      hide();
-      message.error('更新失败请重试！');
-      return false;
-    }
-  };
-  const uploadProps ={
+   * 上传文件
+   */
+  const uploadProps = {
     name: 'file',
-    showUploadList:false,
-    onChange(info:any) {
-      if(info.file.status=='done'){
-        var values = {key:props.location.data.id,file:info.file.originFileObj};
+    showUploadList: false,
+    onChange(info: any) {
+      if (info.file.status == 'done') {
+        const values = {key: props.location.data.id, file: info.file.originFileObj};
         addProjectFile(values).then((result) => {
           if (result.status == '1') {
             message.success('新增成功');
             getProjectFiles();
             return true;
-          } else {
-            message.error('新增失败请重试！');
-            return false;
           }
+          message.error('新增失败请重试！');
+          return false;
+
         });
       }
     },
   }
+  /**
+   * 显示图片的弹窗
+   * @param id
+   */
+  const manageImage = (id: any) => {
+    setImgNum(id);
+    setFile(null)
+    handleUpdateModalVisible(true);
+  }
 
-  return (
-    <PageContainer title="项目文件详情">
-      <Button type="default" onClick={() => turnBack()}>返回</Button>
-      <Upload  {...uploadProps}>
-          <Button icon={<UploadOutlined />}>上传</Button>
-      </Upload>
-      
-      <Tabs tabPosition='left' type="card">
-        <TabPane tab={
-          <span>
-            <FileImageOutlined />
-         图片
-        </span>
-        } key="1">
-          {imageRows?.length > 0 && imageRows.map((item, index) => {
-            return <img className={styles.imgMain} src={env.IMG_URL + item.id}></img>
-          })}
-        </TabPane>
-        <TabPane tab={
-          <span>
-            <FileOutlined />
-         文件
-        </span>
-        } key="2">
-          {fileRows?.length > 0 && fileRows.map((item, index) => {
-            if (item.attachType == 'md') {
-              return <span className={styles.fileMoudle}><FileMarkdownOutlined style={{ fontSize: '100px', color: '#08c' }} onClick={() => downloadFile(item)} /><span>{item.fileName}</span></span>
-            } else if (item.attachType == 'pdf') {
-              return <span className={styles.fileMoudle}><FilePdfOutlined style={{ fontSize: '100px', color: '#08c' }} onClick={() => downloadFile(item)} /><span>{item.fileName}</span></span>
-            } else if (item.attachType == 'ppt') {
-              return <span className={styles.fileMoudle}><FilePptOutlined style={{ fontSize: '100px', color: '#08c' }} onClick={() => downloadFile(item)} /><span>{item.fileName}</span></span>
-            } else if (item.attachType == 'txt') {
-              return <span className={styles.fileMoudle}><FileTextOutlined style={{ fontSize: '100px', color: '#08c' }} onClick={() => downloadFile(item)} /><span>{item.fileName}</span></span>
-            } else if (item.attachType == 'doc') {
-              return <span className={styles.fileMoudle}><FileWordOutlined style={{ fontSize: '100px', color: '#08c' }} onClick={() => downloadFile(item)} /><span>{item.fileName}</span></span>
-            } else if (item.attachType == 'xls') {
-              return <span className={styles.fileMoudle}><FileExcelOutlined style={{ fontSize: '100px', color: '#08c' }} onClick={() => downloadFile(item)} /><span>{item.fileName}</span></span>
-            } else if (item.attachType == 'zip') {
-              return <span className={styles.fileMoudle}><FileZipOutlined style={{ fontSize: '100px', color: '#08c' }} onClick={() => downloadFile(item)} /><span>{item.fileName}</span></span>
-            } else {
-              return <span className={styles.fileMoudle}><FileUnknownOutlined style={{ fontSize: '100px', color: '#08c' }} onClick={() => downloadFile(item)} /><span>{item.fileName}</span></span>
-            }
-          })}
-        </TabPane>
-      </Tabs>
-    </PageContainer>
-  );
+  /**
+   * 显示文件弹出
+   * @param record
+   */
+  const manageFile = (record: TableListItem) => {
+    setImgNum(-1);
+    setFile(record)
+    handleUpdateModalVisible(true);
+  };
+  const downloadAll = (record: TableListItem) => {
+    message.info('功能开发中~');
+  }
+
+  return <PageContainer title="项目文件详情">
+    <Button type="default" onClick={() => turnBack()}>返回</Button>
+    <Upload  {...uploadProps}>
+      <Button icon={<UploadOutlined/>}>上传</Button>
+    </Upload>
+    <Button type="default" onClick={() => downloadAll()}>打包下载</Button>
+    <Tabs tabPosition='left' type="card">
+      <TabPane tab={
+        <span>
+          <FileImageOutlined/>
+       图片
+      </span>
+      } key="1">
+        {imageRows?.length > 0 && imageRows.map((item, index) => {
+          return <Image onClick={() => manageImage(item.id)} preview={false} className={styles.imgMain}
+                        src={env.IMG_URL + item.id}/>
+        })}
+      </TabPane>
+      <TabPane tab={
+        <span>
+          <FileOutlined/>
+       文件
+      </span>
+      } key="2">
+        {fileRows?.length > 0 && fileRows.map((item, index) => {
+          if (item.attachType == 'md') {
+            return <span className={styles.fileMoudle}><FileMarkdownOutlined style={{fontSize: '100px', color: '#08c'}}
+                                                                             onClick={() => manageFile(item)}/><span>{item.fileName}</span></span>
+          }
+          if (item.attachType == 'pdf') {
+            return <span className={styles.fileMoudle}><FilePdfOutlined style={{fontSize: '100px', color: '#08c'}}
+                                                                        onClick={() => manageFile(item)}/><span>{item.fileName}</span></span>
+          }
+          if (item.attachType == 'ppt') {
+            return <span className={styles.fileMoudle}><FilePptOutlined style={{fontSize: '100px', color: '#08c'}}
+                                                                        onClick={() => manageFile(item)}/><span>{item.fileName}</span></span>
+          }
+          if (item.attachType == 'txt') {
+            return <span className={styles.fileMoudle}><FileTextOutlined style={{fontSize: '100px', color: '#08c'}}
+                                                                         onClick={() => manageFile(item)}/><span>{item.fileName}</span></span>
+          }
+          if (item.attachType == 'doc') {
+            return <span className={styles.fileMoudle}><FileWordOutlined style={{fontSize: '100px', color: '#08c'}}
+                                                                         onClick={() => manageFile(item)}/><span>{item.fileName}</span></span>
+          }
+          if (item.attachType == 'xls') {
+            return <span className={styles.fileMoudle}><FileExcelOutlined style={{fontSize: '100px', color: '#08c'}}
+                                                                          onClick={() => manageFile(item)}/><span>{item.fileName}</span></span>
+          }
+          if (item.attachType == 'zip') {
+            return <span className={styles.fileMoudle}><FileZipOutlined style={{fontSize: '100px', color: '#08c'}}
+                                                                        onClick={() => manageFile(item)}/><span>{item.fileName}</span></span>
+          }
+          return <span className={styles.fileMoudle}><FileUnknownOutlined style={{fontSize: '100px', color: '#08c'}}
+                                                                          onClick={() => manageFile(item)}/><span>{item.fileName}</span></span>
+
+        })}
+      </TabPane>
+    </Tabs>
+    <ManageFileForm onCancel={() => handleUpdateModalVisible(false)} modalVisible={updateModalVisible}
+                    deleteImage={() => deleteImage()} downloadFile={() => downloadFile()}>
+      {imgNum !== -1 ? <Image preview={false} src={env.IMG_URL + imgNum}/> :
+        <span className={styles.fileMoudle}><FileUnknownOutlined
+          style={{fontSize: '100px', color: '#08c'}}/><span>{file?.fileName}</span></span>}
+    </ManageFileForm>
+  </PageContainer>;
 };
 
 export default ProjectFileList;
