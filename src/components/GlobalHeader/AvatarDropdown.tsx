@@ -1,11 +1,12 @@
-import { LogoutOutlined, SettingOutlined, UserOutlined } from '@ant-design/icons';
-import { Avatar, Menu, Spin } from 'antd';
+import {LogoutOutlined, SettingOutlined, UserOutlined} from '@ant-design/icons';
+import {Avatar, Menu, message, Spin} from 'antd';
 import React from 'react';
-import { history, ConnectProps, connect } from 'umi';
-import { ConnectState } from '@/models/connect';
-import { CurrentUser } from '@/models/user';
+import {connect, ConnectProps, history} from 'umi';
+import {ConnectState} from '@/models/connect';
+import {CurrentUser} from '@/models/user';
 import HeaderDropdown from '../HeaderDropdown';
 import styles from './index.less';
+import {fakeAccountLogout} from "@/services/login";
 
 export interface GlobalHeaderRightProps extends Partial<ConnectProps> {
   currentUser?: CurrentUser;
@@ -19,17 +20,26 @@ class AvatarDropdown extends React.Component<GlobalHeaderRightProps> {
     item: React.ReactInstance;
     domEvent: React.MouseEvent<HTMLElement>;
   }) => {
-    const { key } = event;
+    const {key} = event;
 
     if (key === 'logout') {
-      const { dispatch } = this.props;
+      const {dispatch} = this.props;
 
       if (dispatch) {
         dispatch({
           type: 'login/logout',
         });
       }
-
+      //调用退出接口清除session
+      fakeAccountLogout().then((result) => {
+        if (result.status == 1) {
+          message.success('退出成功');
+          return true;
+        } else {
+          message.error('退出失败请重试！');
+          return false;
+        }
+      });
       return;
     }
 
@@ -48,20 +58,20 @@ class AvatarDropdown extends React.Component<GlobalHeaderRightProps> {
       <Menu className={styles.menu} selectedKeys={[]} onClick={this.onMenuClick}>
         {menu && (
           <Menu.Item key="center">
-            <UserOutlined />
+            <UserOutlined/>
             个人中心
           </Menu.Item>
         )}
         {menu && (
           <Menu.Item key="settings">
-            <SettingOutlined />
+            <SettingOutlined/>
             个人设置
           </Menu.Item>
         )}
-        {menu && <Menu.Divider />}
+        {menu && <Menu.Divider/>}
 
         <Menu.Item key="logout">
-          <LogoutOutlined />
+          <LogoutOutlined/>
           退出登录
         </Menu.Item>
       </Menu>
@@ -69,7 +79,7 @@ class AvatarDropdown extends React.Component<GlobalHeaderRightProps> {
     return currentUser && currentUser.name ? (
       <HeaderDropdown overlay={menuHeaderDropdown}>
         <span className={`${styles.action} ${styles.account}`}>
-          <Avatar size="small" className={styles.avatar} src={currentUser.avatar} alt="avatar" />
+          <Avatar size="small" className={styles.avatar} src={currentUser.avatar} alt="avatar"/>
           <span className={`${styles.name} anticon`}>{currentUser.name}</span>
         </span>
       </HeaderDropdown>
@@ -87,6 +97,6 @@ class AvatarDropdown extends React.Component<GlobalHeaderRightProps> {
   }
 }
 
-export default connect(({ user }: ConnectState) => ({
+export default connect(({user}: ConnectState) => ({
   currentUser: user.currentUser,
 }))(AvatarDropdown);
